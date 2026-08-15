@@ -1,0 +1,23 @@
+# OS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# OS/network simulator temporary files
+*.bak
+*.swp
+*.swo
