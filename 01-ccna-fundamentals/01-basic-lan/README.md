@@ -129,13 +129,13 @@ end
 ```
 
 
-![Fa0/3 no shutdown](screenshots/06-no-shutdown-fa0-3-ping-verification.png)
 The switch reported:
 
 ```text
 %LINK-5-CHANGED: Interface FastEthernet0/3, changed state to up
 %LINEPROTO-5-UPDOWN: Line protocol on Interface FastEthernet0/3, changed state to up
 ```
+![Fa0/3 no shutdown](screenshots/06-verification-fa0-3.png)
 
 Verification:
 
