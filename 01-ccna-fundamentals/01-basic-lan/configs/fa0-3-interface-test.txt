@@ -1,0 +1,27 @@
+# Fa0/3 Interface State Test
+
+# Disable the interface
+enable
+configure terminal
+interface fa0/3
+shutdown
+end
+
+# Verify
+show interface fa0/3
+
+# Expected observed state:
+# FastEthernet0/3 is administratively down, line protocol is down (disabled)
+
+# Restore the interface
+enable
+configure terminal
+interface fa0/3
+no shutdown
+end
+
+# Verify again
+show interface fa0/3
+
+# Expected observed state:
+# FastEthernet0/3 is up, line protocol is up (connected)
