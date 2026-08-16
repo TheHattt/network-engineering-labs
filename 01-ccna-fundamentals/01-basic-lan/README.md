@@ -25,7 +25,7 @@ PC3 ── Fa0/4
         Switch
 ```
 
-![Basic LAN Topology](01-topology.png)
+![Basic LAN Topology](screenshots/01-topology.png)
 
 
 Known address verified during the exercise:
@@ -53,14 +53,14 @@ Ethernet adapter Ethernet:
    Default Gateway . . . . . . . . . : 0.0.0.0
 ```
 
-![PC0 ipconfig](02-pc0-ip-config.png)
+![PC0 ipconfig](screenshots/02-pc0-ip-config.png)
 
 
 ## 1. Initial Connectivity
 
 PC0 successfully pinged `192.168.10.11`, `192.168.10.12`, `192.168.10.13`.
 
-![Ping Success](03-ping-success.png)
+![Ping Success](screenshots/03-ping-success.png)
 
 
 ```text
@@ -83,11 +83,11 @@ shutdown
 end
 ```
 NB: This interface was administratively disabled.
-![Fa0/3 Shutdown](05-shutdown-command.png)
+![Fa0/3 Shutdown](screenshots/05-shutdown-command.png)
 
 The `shutdown` command disabled the interface, preventing any traffic from passing through it.
 
-![Fa0/3 Topology](04-shutdown-fa0-3-topology.png)
+![Fa0/3 Topology](screenshots/04-shutdown-fa0-3-topology.png)
 
 Verification:
 
@@ -101,7 +101,7 @@ Observed:
 FastEthernet0/3 is administratively down, line protocol is down (disabled)
 ```
 
-![Fa0/3 Verification](06-verification-fa0-3.png)
+![Fa0/3 Verification](screenshots/06-verification-fa0-3.png)
 
 
 `administratively down` means the interface was intentionally disabled by configuration.
@@ -112,7 +112,7 @@ PC0 then attempted to reach `192.168.10.12`:
 Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)
 ```
 
-![Fa0/3 pc-ping](06-pc0-ping-fa0-3-ping.png)
+![Fa0/3 pc-ping](screenshots/06-pc0-ping-fa0-3-ping.png)
 
 The failed ping confirms that disabling Fa0/3 interrupted the Ethernet path to the destination.
 
@@ -129,7 +129,7 @@ end
 ```
 
 
-![Fa0/3 no shutdown](06-no-shutdown-fa0-3-ping-verification.png)
+![Fa0/3 no shutdown](screenshots/06-no-shutdown-fa0-3-ping-verification.png)
 The switch reported:
 
 ```text
@@ -149,12 +149,12 @@ Observed:
 FastEthernet0/3 is up, line protocol is up (connected)
 ```
 
-![Fa0/3 no shutdown verification](07-no-shutdown-fa0-3-ping-verification.png)
+![Fa0/3 no shutdown verification](screenshots/06-no-shutdown-fa0-3-ping-verification.png)
 
 PC0 then successfully pinged `192.168.10.12` again:
 
 
-![Ping verification](07-no-shutdown-fa0-3-ping-verification.png)
+![Ping verification](screenshots/07-no-shutdown-fa0-3-ping-verification.png)
 
 ```text
 Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)
@@ -175,7 +175,7 @@ Minimum = 0ms, Maximum = 1ms, Average = 0ms
 show interface fa0/3
 ```
 Displays detailed information about Fa0/3.
-![show interface fa0/3](08-no-shutdown-fa0-3-show-interface.png)
+![show interface fa0/3](screenshots/08-no-shutdown-fa0-3-show-interface.png)
 
 ```text
 interface fa0/3
