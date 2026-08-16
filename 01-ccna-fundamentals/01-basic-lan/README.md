@@ -135,7 +135,7 @@ The switch reported:
 %LINK-5-CHANGED: Interface FastEthernet0/3, changed state to up
 %LINEPROTO-5-UPDOWN: Line protocol on Interface FastEthernet0/3, changed state to up
 ```
-![Fa0/3 no shutdown](screenshots/06-verification-fa0-3.png)
+![Fa0/3 no shutdown](screenshots/06-no-shutdown-fa0-3-verification.png)
 
 Verification:
 
@@ -149,7 +149,7 @@ Observed:
 FastEthernet0/3 is up, line protocol is up (connected)
 ```
 
-![Fa0/3 no shutdown verification](screenshots/06-no-shutdown-fa0-3-ping-verification.png)
+![Fa0/3 no shutdown verification](screenshots/06-no-shutdown-fa0-3-verification.png)
 
 PC0 then successfully pinged `192.168.10.12` again:
 
