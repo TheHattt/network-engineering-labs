@@ -1,0 +1,195 @@
+LAB 04 — VLAN TRUNKING AND 802.1Q
+=================================
+
+Purpose
+-------
+Configuration record for the 802.1Q trunk between SW1 and SW2.
+
+Topology
+--------
+SW1 Fa0/24 <-------- 802.1Q Trunk --------> Fa0/24 SW2
+
+VLANs carried across the trunk:
+- VLAN 10 — USERS
+- VLAN 20 — FINANCE
+
+
+==================================================
+SW1 CONFIGURATION
+==================================================
+
+! Enter privileged EXEC mode
+enable
+
+! Enter global configuration mode
+configure terminal
+
+! Configure the inter-switch link as a trunk
+interface FastEthernet0/24
+ description TRUNK_TO_SW2
+ switchport mode trunk
+
+! Restrict the trunk to the VLANs required by the design
+ switchport trunk allowed vlan 10,20
+
+exit
+
+! Return to privileged EXEC mode
+end
+
+
+==================================================
+SW2 CONFIGURATION
+==================================================
+
+! Enter privileged EXEC mode
+enable
+
+! Enter global configuration mode
+configure terminal
+
+! Configure the inter-switch link as a trunk
+interface FastEthernet0/24
+ description TRUNK_TO_SW1
+ switchport mode trunk
+
+! Restrict the trunk to the VLANs required by the design
+ switchport trunk allowed vlan 10,20
+
+exit
+
+! Return to privileged EXEC mode
+end
+
+
+==================================================
+VERIFICATION COMMANDS
+==================================================
+
+Run on BOTH SW1 and SW2:
+
+show interfaces trunk
+
+show interfaces fastEthernet 0/24 switchport
+
+show vlan brief
+
+show mac address-table dynamic
+
+
+==================================================
+EXPECTED TRUNK STATE
+==================================================
+
+Interface:
+Fa0/24
+
+Administrative Mode:
+trunk
+
+Operational Mode:
+trunk
+
+Administrative Trunking Encapsulation:
+dot1q
+
+Operational Trunking Encapsulation:
+dot1q
+
+Native VLAN:
+1
+
+Allowed VLANs:
+10,20
+
+VLANs allowed and active:
+10,20
+
+VLANs forwarding and not pruned:
+10,20
+
+
+==================================================
+VERIFICATION EVIDENCE
+==================================================
+
+SW1 Fa0/24:
+
+Administrative Mode: trunk
+Operational Mode: trunk
+Administrative Trunking Encapsulation: dot1q
+Operational Trunking Encapsulation: dot1q
+Trunking VLANs Enabled: 10,20
+
+
+SW2 Fa0/24:
+
+Administrative Mode: trunk
+Operational Mode: trunk
+Administrative Trunking Encapsulation: dot1q
+Operational Trunking Encapsulation: dot1q
+Trunking VLANs Enabled: 10,20
+
+
+==================================================
+MAC LEARNING OBSERVATION
+==================================================
+
+After traffic was generated across the trunk, MAC addresses from
+remote VLAN endpoints were learned through Fa0/24.
+
+SW1 learned remote VLAN 10 and VLAN 20 MAC addresses through Fa0/24.
+
+SW2 learned remote VLAN 10 and VLAN 20 MAC addresses through Fa0/24.
+
+This demonstrates that the trunk is carrying Layer 2 traffic for
+both VLAN 10 and VLAN 20.
+
+
+==================================================
+IMPORTANT DESIGN NOTES
+==================================================
+
+1. Fa0/24 is the inter-switch link.
+
+2. Fa0/24 is configured as a trunk on BOTH switches.
+
+3. 802.1Q is used for VLAN tagging across the trunk.
+
+4. VLAN 10 and VLAN 20 are explicitly allowed on the trunk.
+
+5. VLAN 1 remains the native VLAN.
+
+6. The trunk does NOT provide inter-VLAN routing.
+
+7. VLAN 10 traffic remains within VLAN 10.
+
+8. VLAN 20 traffic remains within VLAN 20.
+
+9. Devices in VLAN 10 can communicate across the trunk with
+   other VLAN 10 devices.
+
+10. Devices in VLAN 20 can communicate across the trunk with
+    other VLAN 20 devices.
+
+11. VLAN 10 and VLAN 20 remain separate Layer 2 broadcast domains.
+
+12. Inter-VLAN communication requires a Layer 3 device such as
+    a router or multilayer switch.
+
+
+==================================================
+LAB 04 RESULT
+==================================================
+
+The inter-switch link between SW1 and SW2 was successfully
+configured as an IEEE 802.1Q trunk.
+
+VLAN 10 and VLAN 20 were successfully permitted across the trunk.
+
+Same-VLAN communication across the two switches was verified.
+
+Inter-VLAN communication remained isolated.
+
+MAC address learning demonstrated that remote VLAN endpoints
+were reachable through the trunk interface Fa0/24.
