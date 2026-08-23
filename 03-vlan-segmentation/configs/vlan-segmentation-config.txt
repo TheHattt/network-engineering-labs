@@ -1,0 +1,24 @@
+! Lab 03 - VLAN Segmentation
+! Switch: SW1
+! VLAN 10 = USERS
+! VLAN 20 = FINANCE
+
+interface FastEthernet0/1
+ switchport access vlan 10
+ switchport mode access
+!
+interface FastEthernet0/2
+ switchport access vlan 10
+ switchport mode access
+!
+interface FastEthernet0/3
+ switchport access vlan 20
+ switchport mode access
+!
+interface FastEthernet0/4
+ switchport access vlan 20
+ switchport mode access
+!
+interface Vlan1
+ no ip address
+ shutdown
