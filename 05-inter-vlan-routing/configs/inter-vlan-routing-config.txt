@@ -1,0 +1,404 @@
+
+# Lab 05 — Inter-VLAN Routing Configuration
+
+## Purpose
+
+This file documents the Layer 2 and Layer 3 configuration used to implement inter-VLAN routing with Router-on-a-Stick.
+
+The design uses:
+
+* SW1 as the Layer 2 access switch
+* R1 as the Layer 3 routing device
+* VLAN 10 for USERS
+* VLAN 20 for FINANCE
+* FastEthernet0/24 as the switch-to-router trunk
+* GigabitEthernet0/0 on R1 as the physical trunk-facing interface
+* G0/0.10 as the VLAN 10 gateway
+* G0/0.20 as the VLAN 20 gateway
+
+---
+
+# 1. SW1 — VLAN Configuration
+
+```cisco
+enable
+configure terminal
+
+vlan 10
+ name USERS
+
+vlan 20
+ name FINANCE
+```
+
+### Explanation
+
+VLANs create separate Layer 2 broadcast domains.
+
+VLAN 10 and VLAN 20 therefore represent two independent networks:
+
+```text
+VLAN 10 → 192.168.10.0/24
+VLAN 20 → 192.168.20.0/24
+```
+
+At this stage, hosts in the two VLANs are isolated at Layer 2.
+
+---
+
+# 2. SW1 — Access Ports
+
+```cisco
+interface FastEthernet0/1
+ switchport mode access
+ switchport access vlan 10
+
+interface FastEthernet0/2
+ switchport mode access
+ switchport access vlan 20
+```
+
+### Explanation
+
+Fa0/1 connects an endpoint belonging to VLAN 10.
+
+Fa0/2 connects an endpoint belonging to VLAN 20.
+
+These are access ports, so the connected PCs send and receive ordinary Ethernet frames without needing to understand VLAN tagging.
+
+SW1 internally associates each frame with the VLAN assigned to the ingress port.
+
+---
+
+# 3. SW1 — Trunk Toward R1
+
+```cisco
+interface FastEthernet0/24
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20
+```
+
+### Explanation
+
+Fa0/24 is the Layer 2 trunk between SW1 and R1.
+
+The trunk is required because one physical link must carry traffic for both VLANs.
+
+The allowed VLAN list restricts the trunk to:
+
+```text
+VLAN 10
+VLAN 20
+```
+
+Verification showed the trunk operating with:
+
+```text
+Encapsulation: 802.1q
+Status: trunking
+Native VLAN: 1
+Allowed VLANs: 10,20
+```
+
+This corresponds to the trunk verification captured in:
+
+```text
+screenshots/03-trunk-verification.png
+```
+
+---
+
+# 4. R1 — Physical Interface
+
+```cisco
+enable
+configure terminal
+
+interface GigabitEthernet0/0
+ no ip address
+ no shutdown
+```
+
+### Explanation
+
+G0/0 is the physical interface connected to SW1.
+
+The interface carries multiple VLANs, so the IP addresses are configured on logical subinterfaces rather than directly on G0/0.
+
+`no shutdown` is essential because an administratively disabled physical interface prevents the trunk from becoming operational.
+
+The interface-status evidence is documented in:
+
+```text
+screenshots/04-router-interface-status.png
+```
+
+---
+
+# 5. R1 — VLAN 10 Subinterface
+
+```cisco
+interface GigabitEthernet0/0.10
+ encapsulation dot1Q 10
+ ip address 192.168.10.1 255.255.255.0
+```
+
+### Explanation
+
+G0/0.10 is the logical Layer 3 interface for VLAN 10.
+
+The command:
+
+```cisco
+encapsulation dot1Q 10
+```
+
+associates this subinterface with VLAN 10.
+
+The address:
+
+```text
+192.168.10.1/24
+```
+
+becomes the default gateway for hosts in VLAN 10.
+
+Therefore:
+
+```text
+PC0
+192.168.10.10
+      │
+      ▼
+192.168.10.1
+G0/0.10
+```
+
+---
+
+# 6. R1 — VLAN 20 Subinterface
+
+```cisco
+interface GigabitEthernet0/0.20
+ encapsulation dot1Q 20
+ ip address 192.168.20.1 255.255.255.0
+```
+
+### Explanation
+
+G0/0.20 is the logical Layer 3 interface for VLAN 20.
+
+The command:
+
+```cisco
+encapsulation dot1Q 20
+```
+
+associates this subinterface with VLAN 20.
+
+The address:
+
+```text
+192.168.20.1/24
+```
+
+becomes the default gateway for hosts in VLAN 20.
+
+Therefore:
+
+```text
+PC1
+192.168.20.10
+      │
+      ▼
+192.168.20.1
+G0/0.20
+```
+
+---
+
+# 7. Complete R1 Configuration
+
+The relevant Router-on-a-Stick configuration can therefore be represented as:
+
+```cisco
+interface GigabitEthernet0/0
+ no ip address
+ no shutdown
+
+interface GigabitEthernet0/0.10
+ encapsulation dot1Q 10
+ ip address 192.168.10.1 255.255.255.0
+
+interface GigabitEthernet0/0.20
+ encapsulation dot1Q 20
+ ip address 192.168.20.1 255.255.255.0
+```
+
+This is the core Layer 3 configuration responsible for inter-VLAN routing.
+
+---
+
+# 8. End-Host Addressing
+
+## PC0 — VLAN 10
+
+```text
+IP address:      192.168.10.10
+Subnet mask:     255.255.255.0
+Default gateway: 192.168.10.1
+VLAN:             10
+```
+
+## PC1 — VLAN 20
+
+```text
+IP address:      192.168.20.10
+Subnet mask:     255.255.255.0
+Default gateway: 192.168.20.1
+VLAN:             20
+```
+
+The default gateway is critical.
+
+When PC0 needs to reach `192.168.20.10`, it recognizes that the destination is outside its local `192.168.10.0/24` network and forwards the traffic to `192.168.10.1`.
+
+---
+
+# 9. Configuration Logic
+
+The entire design can be reduced to this chain:
+
+```text
+PC0
+192.168.10.10
+VLAN 10
+   │
+   ▼
+SW1 Fa0/1
+Access VLAN 10
+   │
+   ▼
+SW1 Fa0/24
+802.1Q trunk
+   │
+   ▼
+R1 G0/0.10
+192.168.10.1
+   │
+   │ Layer 3 routing
+   ▼
+R1 G0/0.20
+192.168.20.1
+   │
+   ▼
+SW1
+VLAN 20
+   │
+   ▼
+PC1
+192.168.20.10
+```
+
+---
+
+# 10. Important Configuration Concepts
+
+### `switchport mode access`
+
+Places a switchport into a single VLAN.
+
+### `switchport access vlan 10`
+
+Associates the access port with VLAN 10.
+
+### `switchport mode trunk`
+
+Changes the switchport into a trunk capable of transporting multiple VLANs.
+
+### `switchport trunk allowed vlan 10,20`
+
+Restricts the VLANs permitted across the trunk.
+
+### `encapsulation dot1Q 10`
+
+Associates a router subinterface with VLAN 10.
+
+### `ip address 192.168.10.1 255.255.255.0`
+
+Provides the Layer 3 gateway for VLAN 10.
+
+### `no shutdown`
+
+Enables an administratively disabled interface.
+
+---
+
+# 11. Verification Commands
+
+The following commands were used to verify the configuration.
+
+## SW1
+
+```cisco
+show vlan brief
+show interfaces trunk
+show mac address-table dynamic
+show running-config | section interface FastEthernet0/24
+```
+
+## R1
+
+```cisco
+show ip interface brief
+show ip route
+show running-config | section interface GigabitEthernet0/0
+```
+
+## PCs
+
+```text
+ipconfig
+ping <destination>
+```
+
+---
+
+# 12. Configuration-to-Evidence Mapping
+
+| Configuration         | Verification Evidence               |
+| --------------------- | ----------------------------------- |
+| VLAN 10/20            | `02-vlan-configuration.png`         |
+| SW1 trunk             | `03-trunk-verification.png`         |
+| R1 physical interface | `04-router-interface-status.png`    |
+| R1 subinterfaces      | `05-router-subinterfaces.png`       |
+| Connected routes      | `06-routing-table.png`              |
+| VLAN 10 gateway       | `07-pc0-default-gateway.png`        |
+| VLAN 20 gateway       | `08-pc1-default-gateway.png`        |
+| Inter-VLAN routing    | `09-pc0-to-pc1-inter-vlan.png`      |
+| Reverse routing       | `10-pc1-to-pc0-inter-vlan.png`      |
+| MAC learning          | `11-mac-address-table.png`          |
+| Trunk configuration   | `12-switch-trunk-configuration.png` |
+
+---
+
+# 13. Expected End State
+
+The completed configuration should provide:
+
+```text
+VLAN 10 ─────┐
+             │
+             ├── R1 ── Layer 3 routing ──┐
+             │                            │
+VLAN 20 ─────┘                            │
+                                          │
+              Successful bidirectional    │
+              communication ──────────────┘
+```
+
+The switch remains responsible for Layer 2 forwarding, while R1 becomes the Layer 3 boundary between the VLANs.
+
+The configuration therefore demonstrates the fundamental relationship between:
+
+**VLANs → Trunks → Default Gateways → Routing → End-to-End Connectivity**
