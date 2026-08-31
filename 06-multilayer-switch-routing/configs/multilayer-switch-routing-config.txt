@@ -1,0 +1,726 @@
+# Lab 06 — Multilayer Switch Inter-VLAN Routing
+
+## Configuration Record
+
+## 1. Configuration Purpose
+
+This file records the configuration used to turn `MLS1` from a Layer 2 access switch into a multilayer switch capable of routing between VLANs.
+
+The final design contains:
+
+```text
+VLAN 10 → USERS       → 192.168.10.0/24 → Gateway 192.168.10.1
+VLAN 20 → FINANCE     → 192.168.20.0/24 → Gateway 192.168.20.1
+VLAN 30 → IT          → 192.168.30.0/24 → Gateway 192.168.30.1
+```
+
+The key Layer 3 components are:
+
+```text
+SVI Vlan10
+SVI Vlan20
+SVI Vlan30
+ip routing
+```
+
+---
+
+# 2. Device
+
+```text
+Hostname: MLS1
+Platform: Cisco 3560 Multilayer Switch
+```
+
+The switch performs both:
+
+```text
+Layer 2 switching
++
+Layer 3 routing
+```
+
+---
+
+# 3. VLAN Configuration
+
+The following VLANs were created:
+
+```cisco
+enable
+configure terminal
+
+vlan 10
+ name USERS
+
+vlan 20
+ name FINANCE
+
+vlan 30
+ name IT
+
+end
+```
+
+## Purpose
+
+The VLANs create three separate Layer 2 broadcast domains.
+
+```text
+VLAN 10 → USERS
+VLAN 20 → FINANCE
+VLAN 30 → IT
+```
+
+---
+
+# 4. Access-Port Configuration
+
+The endpoint-facing interfaces were configured as access ports.
+
+## VLAN 10
+
+```cisco
+interface FastEthernet0/1
+ switchport mode access
+ switchport access vlan 10
+ exit
+
+interface FastEthernet0/2
+ switchport mode access
+ switchport access vlan 10
+ exit
+```
+
+### Result
+
+```text
+Fa0/1 → VLAN 10
+Fa0/2 → VLAN 10
+```
+
+---
+
+## VLAN 20
+
+```cisco
+interface FastEthernet0/3
+ switchport mode access
+ switchport access vlan 20
+ exit
+
+interface FastEthernet0/4
+ switchport mode access
+ switchport access vlan 20
+ exit
+```
+
+### Result
+
+```text
+Fa0/3 → VLAN 20
+Fa0/4 → VLAN 20
+```
+
+---
+
+## VLAN 30
+
+```cisco
+interface FastEthernet0/5
+ switchport mode access
+ switchport access vlan 30
+ exit
+
+interface FastEthernet0/6
+ switchport mode access
+ switchport access vlan 30
+ exit
+```
+
+### Result
+
+```text
+Fa0/5 → VLAN 30
+Fa0/6 → VLAN 30
+```
+
+---
+
+# 5. Layer 3 Routing Enablement
+
+The multilayer switch was enabled for Layer 3 routing using:
+
+```cisco
+ip routing
+```
+
+This is a global configuration command.
+
+## Purpose
+
+Without `ip routing`:
+
+```text
+VLANs
+   ↓
+SVIs
+   ↓
+Layer 3 interfaces exist
+```
+
+but the switch does not route traffic between those interfaces.
+
+With:
+
+```cisco
+ip routing
+```
+
+MLS1 can perform:
+
+```text
+VLAN 10
+   ↓
+SVI 10
+   ↓
+Routing table
+   ↓
+SVI 20
+   ↓
+VLAN 20
+```
+
+and similarly for VLAN 30.
+
+---
+
+# 6. SVI Configuration — VLAN 10
+
+```cisco
+interface Vlan10
+ description SVI for VLAN 10 - USERS
+ ip address 192.168.10.1 255.255.255.0
+ no shutdown
+ exit
+```
+
+## Purpose
+
+`Vlan10` is the Layer 3 interface associated with VLAN 10.
+
+Its address:
+
+```text
+192.168.10.1/24
+```
+
+is the default gateway for VLAN 10 hosts.
+
+---
+
+# 7. SVI Configuration — VLAN 20
+
+```cisco
+interface Vlan20
+ description SVI for VLAN 20 - FINANCE
+ ip address 192.168.20.1 255.255.255.0
+ no shutdown
+ exit
+```
+
+## Purpose
+
+`Vlan20` provides the Layer 3 gateway for VLAN 20.
+
+Its gateway address is:
+
+```text
+192.168.20.1/24
+```
+
+---
+
+# 8. SVI Configuration — VLAN 30
+
+```cisco
+interface Vlan30
+ description SVI for VLAN 30 - IT
+ ip address 192.168.30.1 255.255.255.0
+ no shutdown
+ exit
+```
+
+## Purpose
+
+`Vlan30` provides the Layer 3 gateway for VLAN 30.
+
+Its gateway address is:
+
+```text
+192.168.30.1/24
+```
+
+---
+
+# 9. Complete Layer 3 Configuration
+
+The core Layer 3 portion of the configuration is:
+
+```cisco
+ip routing
+
+interface Vlan10
+ description SVI for VLAN 10 - USERS
+ ip address 192.168.10.1 255.255.255.0
+ no shutdown
+
+interface Vlan20
+ description SVI for VLAN 20 - FINANCE
+ ip address 192.168.20.1 255.255.255.0
+ no shutdown
+
+interface Vlan30
+ description SVI for VLAN 30 - IT
+ ip address 192.168.30.1 255.255.255.0
+ no shutdown
+```
+
+This combination provides:
+
+```text
+3 VLANs
++
+3 SVIs
++
+3 Layer 3 gateways
++
+IP routing
+```
+
+---
+
+# 10. End-Host Addressing
+
+The endpoint addressing used in the lab is:
+
+## VLAN 10 — USERS
+
+```text
+PC0
+IP Address:      192.168.10.10
+Subnet Mask:     255.255.255.0
+Default Gateway: 192.168.10.1
+```
+
+```text
+PC1
+IP Address:      192.168.10.11
+Subnet Mask:     255.255.255.0
+Default Gateway: 192.168.10.1
+```
+
+---
+
+## VLAN 20 — FINANCE
+
+```text
+PC2
+IP Address:      192.168.20.10
+Subnet Mask:     255.255.255.0
+Default Gateway: 192.168.20.1
+```
+
+```text
+PC3
+IP Address:      192.168.20.11
+Subnet Mask:     255.255.255.0
+Default Gateway: 192.168.20.1
+```
+
+---
+
+## VLAN 30 — IT
+
+```text
+PC4
+IP Address:      192.168.30.10
+Subnet Mask:     255.255.255.0
+Default Gateway: 192.168.30.1
+```
+
+```text
+PC5
+IP Address:      192.168.30.11
+Subnet Mask:     255.255.255.0
+Default Gateway: 192.168.30.1
+```
+
+---
+
+# 11. Interface Relationships
+
+The final logical relationships are:
+
+```text
+Fa0/1 → VLAN 10 → SVI Vlan10 → 192.168.10.1
+Fa0/2 → VLAN 10 → SVI Vlan10 → 192.168.10.1
+
+Fa0/3 → VLAN 20 → SVI Vlan20 → 192.168.20.1
+Fa0/4 → VLAN 20 → SVI Vlan20 → 192.168.20.1
+
+Fa0/5 → VLAN 30 → SVI Vlan30 → 192.168.30.1
+Fa0/6 → VLAN 30 → SVI Vlan30 → 192.168.30.1
+```
+
+This demonstrates that multiple physical access ports can share one logical Layer 3 gateway because they belong to the same VLAN.
+
+---
+
+# 12. Expected Routing Table
+
+After the SVIs become operational and `ip routing` is enabled, MLS1 should learn the three networks as directly connected.
+
+Expected:
+
+```text
+C 192.168.10.0/24 → Vlan10
+C 192.168.20.0/24 → Vlan20
+C 192.168.30.0/24 → Vlan30
+```
+
+The exact output is verified with:
+
+```cisco
+show ip route
+```
+
+---
+
+# 13. Expected SVI State
+
+Verification:
+
+```cisco
+show ip interface brief
+```
+
+Expected:
+
+```text
+Vlan10    192.168.10.1    up    up
+Vlan20    192.168.20.1    up    up
+Vlan30    192.168.30.1    up    up
+```
+
+The desired operational state is:
+
+```text
+Status:   up
+Protocol: up
+```
+
+---
+
+# 14. Layer 2 Verification Commands
+
+## VLANs
+
+```cisco
+show vlan brief
+```
+
+Used to verify:
+
+```text
+VLAN 10
+VLAN 20
+VLAN 30
+```
+
+and access-port membership.
+
+## MAC learning
+
+```cisco
+show mac address-table dynamic
+```
+
+Used to verify that MLS1 is still performing normal Layer 2 MAC learning.
+
+---
+
+# 15. Layer 3 Verification Commands
+
+## SVI state
+
+```cisco
+show ip interface brief
+```
+
+## Routing table
+
+```cisco
+show ip route
+```
+
+## Routing enablement
+
+```cisco
+show running-config | include ip routing
+```
+
+## SVI configuration
+
+```cisco
+show running-config | section interface Vlan
+```
+
+---
+
+# 16. Connectivity Tests
+
+## Same-VLAN tests
+
+```text
+PC0 → PC1
+```
+
+Expected:
+
+```text
+PASS
+```
+
+Both endpoints are in VLAN 10.
+
+```text
+PC2 → PC3
+```
+
+Expected:
+
+```text
+PASS
+```
+
+Both endpoints are in VLAN 20.
+
+---
+
+## Inter-VLAN tests
+
+```text
+PC0 → PC2
+```
+
+Expected:
+
+```text
+PASS
+```
+
+This tests:
+
+```text
+VLAN 10 → VLAN 20
+```
+
+through MLS1.
+
+A reverse-direction test should also succeed:
+
+```text
+PC2 → PC0
+```
+
+---
+
+# 17. Configuration Logic
+
+The final configuration can be understood as a chain:
+
+```text
+Physical access port
+        ↓
+VLAN membership
+        ↓
+SVI gateway
+        ↓
+IP routing
+        ↓
+Routing table
+        ↓
+Destination VLAN
+        ↓
+Layer 2 forwarding
+```
+
+For example:
+
+```text
+PC0
+192.168.10.10
+   ↓
+Fa0/1
+   ↓
+VLAN 10
+   ↓
+SVI 10
+192.168.10.1
+   ↓
+IP ROUTING
+   ↓
+SVI 20
+192.168.20.1
+   ↓
+VLAN 20
+   ↓
+PC2
+192.168.20.10
+```
+
+---
+
+# 18. Important Distinction From Router-on-a-Stick
+
+Lab 05 used:
+
+```text
+Router subinterfaces
+```
+
+Example:
+
+```text
+G0/0.10
+G0/0.20
+```
+
+Lab 06 uses:
+
+```text
+SVIs
+```
+
+Example:
+
+```text
+Vlan10
+Vlan20
+Vlan30
+```
+
+Therefore:
+
+```text
+Router-on-a-Stick:
+External router performs routing
+
+Multilayer switch:
+The switch itself performs routing
+```
+
+---
+
+# 19. Final Configuration Summary
+
+```text
+Device:
+MLS1
+
+VLANs:
+10 USERS
+20 FINANCE
+30 IT
+
+Access ports:
+Fa0/1 → VLAN 10
+Fa0/2 → VLAN 10
+Fa0/3 → VLAN 20
+Fa0/4 → VLAN 20
+Fa0/5 → VLAN 30
+Fa0/6 → VLAN 30
+
+SVIs:
+Vlan10 → 192.168.10.1/24
+Vlan20 → 192.168.20.1/24
+Vlan30 → 192.168.30.1/24
+
+Layer 3 routing:
+ip routing
+```
+
+---
+
+# 20. Configuration Verification Evidence
+
+The implementation is supported by the following screenshots:
+
+| Screenshot                         | Configuration Evidence            |
+| ---------------------------------- | --------------------------------- |
+| `01-toppology.png`                 | Physical and logical topology     |
+| `02-vlan-configuration.png`        | VLAN creation and VLAN membership |
+| `03-access-port-configuration.png` | Access-port assignment            |
+| `04-svi-configuration.png`         | SVI creation and IP addressing    |
+| `05-ip-routing-enabled.png`        | `ip routing` enabled              |
+| `06-interface-status.png`          | SVI operational state             |
+| `07-routing-table.png`             | Directly connected Layer 3 routes |
+| `08-pc0-gateway-ping.png`          | Gateway reachability              |
+| `09-inter-vlan-routing.png`        | Inter-VLAN routing                |
+| `10-mac-address-table.png`         | Layer 2 MAC learning              |
+
+---
+
+# 21. Final Configuration State
+
+The final multilayer switch provides:
+
+```text
+Layer 2:
+- VLAN segmentation
+- Access ports
+- MAC learning
+- Broadcast-domain separation
+
+Layer 3:
+- Three SVIs
+- Three default gateways
+- Connected routes
+- Inter-VLAN routing
+- IP routing enabled
+```
+
+The result is a single device capable of performing both switching and routing.
+
+---
+
+# 22. Final Result
+
+```text
+                      MLS1
+             ┌──────────────────────┐
+             │ Multilayer Switch    │
+             │                      │
+             │      ip routing      │
+             │          ↕           │
+             │ SVI10 SVI20 SVI30   │
+             │  .10.1  .20.1  .30.1│
+             └──┬──────┬──────┬────┘
+                │      │      │
+              VLAN10 VLAN20 VLAN30
+```
+
+The configuration successfully provides:
+
+```text
+VLAN segmentation
+        +
+SVI gateways
+        +
+Layer 3 routing
+        =
+Inter-VLAN communication
+```
+
+The multilayer switch therefore replaces the external router for this local inter-VLAN routing design.
