@@ -1,0 +1,867 @@
+
+# Practice Lab 06B — Static Routing Between Two LANs
+
+## Configuration Record
+
+---
+
+# 1. Configuration Purpose
+
+This document records the configuration used to connect two separate LANs through two Cisco routers and a point-to-point transit network.
+
+The objective was to establish end-to-end communication between:
+
+```text
+LAN A
+192.168.10.0/24
+```
+
+and:
+
+```text
+LAN B
+192.168.20.0/24
+```
+
+using static routes.
+
+The topology contains:
+
+```text
+PC0 ─ SW1 ─ R1 ───── R2 ─ SW2 ─ PC1
+```
+
+with:
+
+```text
+LAN A        → 192.168.10.0/24
+Transit      → 10.0.0.0/30
+LAN B        → 192.168.20.0/24
+```
+
+---
+
+# 2. Device Roles
+
+| Device | Role                  |
+| ------ | --------------------- |
+| PC0    | Host on LAN A         |
+| SW1    | Layer 2 access switch |
+| R1     | Router for LAN A      |
+| R2     | Router for LAN B      |
+| SW2    | Layer 2 access switch |
+| PC1    | Host on LAN B         |
+
+The routers are responsible for Layer 3 forwarding.
+
+---
+
+# 3. Physical Interface Design
+
+The physical connections are:
+
+```text
+R1 G0/0  → SW1 Fa0/24
+R1 G0/1  → R2 G0/1
+R2 G0/0  → SW2 Fa0/24
+```
+
+This gives the routers the following logical roles:
+
+```text
+R1 G0/0 → LAN A
+R1 G0/1 → Transit
+
+R2 G0/1 → Transit
+R2 G0/0 → LAN B
+```
+
+---
+
+# 4. IP Addressing Plan
+
+## LAN A
+
+```text
+Network: 192.168.10.0/24
+```
+
+R1:
+
+```text
+G0/0 → 192.168.10.1
+```
+
+PC0:
+
+```text
+IP address:      192.168.10.10
+Subnet mask:     255.255.255.0
+Default gateway: 192.168.10.1
+```
+
+---
+
+## Transit Network
+
+```text
+Network: 10.0.0.0/30
+```
+
+R1:
+
+```text
+G0/1 → 10.0.0.1
+```
+
+R2:
+
+```text
+G0/1 → 10.0.0.2
+```
+
+Subnet details:
+
+```text
+Network:    10.0.0.0
+Host:       10.0.0.1
+Host:       10.0.0.2
+Broadcast:  10.0.0.3
+```
+
+---
+
+## LAN B
+
+```text
+Network: 192.168.20.0/24
+```
+
+R2:
+
+```text
+G0/0 → 192.168.20.1
+```
+
+PC1:
+
+```text
+IP address:      192.168.20.10
+Subnet mask:     255.255.255.0
+Default gateway: 192.168.20.1
+```
+
+---
+
+# 5. PC0 Configuration
+
+PC0 belongs to LAN A.
+
+```text
+IP Address:
+192.168.10.10
+
+Subnet Mask:
+255.255.255.0
+
+Default Gateway:
+192.168.10.1
+```
+
+The default gateway is R1's G0/0 address.
+
+PC0 therefore sends traffic for remote networks to:
+
+```text
+192.168.10.1
+```
+
+---
+
+# 6. PC1 Configuration
+
+PC1 belongs to LAN B.
+
+```text
+IP Address:
+192.168.20.10
+
+Subnet Mask:
+255.255.255.0
+
+Default Gateway:
+192.168.20.1
+```
+
+The default gateway is R2's G0/0 address.
+
+PC1 therefore sends traffic for remote networks to:
+
+```text
+192.168.20.1
+```
+
+---
+
+# 7. R1 — LAN Interface
+
+R1's G0/0 connects to SW1 and provides the gateway for LAN A.
+
+```cisco
+interface GigabitEthernet0/0
+ ip address 192.168.10.1 255.255.255.0
+ no shutdown
+```
+
+### Purpose
+
+This interface connects R1 directly to:
+
+```text
+192.168.10.0/24
+```
+
+Because the network is directly connected, R1 automatically installs a connected route.
+
+---
+
+# 8. R1 — Transit Interface
+
+R1's G0/1 connects to R2.
+
+```cisco
+interface GigabitEthernet0/1
+ ip address 10.0.0.1 255.255.255.252
+ no shutdown
+```
+
+### Purpose
+
+This interface participates in:
+
+```text
+10.0.0.0/30
+```
+
+and provides R1's next-hop path toward R2.
+
+---
+
+# 9. R2 — Transit Interface
+
+R2's G0/1 connects to R1.
+
+```cisco
+interface GigabitEthernet0/1
+ ip address 10.0.0.2 255.255.255.252
+ no shutdown
+```
+
+### Purpose
+
+This interface provides R2's side of the point-to-point transit connection.
+
+R1 reaches R2 through:
+
+```text
+10.0.0.2
+```
+
+and R2 reaches R1 through:
+
+```text
+10.0.0.1
+```
+
+---
+
+# 10. R2 — LAN Interface
+
+R2's G0/0 provides the gateway for LAN B.
+
+```cisco
+interface GigabitEthernet0/0
+ ip address 192.168.20.1 255.255.255.0
+ no shutdown
+```
+
+### Purpose
+
+This interface is directly connected to:
+
+```text
+192.168.20.0/24
+```
+
+R2 therefore automatically knows that network.
+
+---
+
+# 11. R1 Directly Connected Networks
+
+After configuring its interfaces, R1 automatically learns:
+
+```text
+C 192.168.10.0/24
+C 10.0.0.0/30
+```
+
+Where:
+
+```text
+C = Connected
+```
+
+R1 does not automatically know:
+
+```text
+192.168.20.0/24
+```
+
+because that network exists behind R2.
+
+---
+
+# 12. R2 Directly Connected Networks
+
+After interface configuration, R2 automatically learns:
+
+```text
+C 10.0.0.0/30
+C 192.168.20.0/24
+```
+
+R2 does not automatically know:
+
+```text
+192.168.10.0/24
+```
+
+because that network exists behind R1.
+
+---
+
+# 13. R1 Static Route
+
+R1 requires a route to LAN B.
+
+Destination:
+
+```text
+192.168.20.0/24
+```
+
+Next hop:
+
+```text
+10.0.0.2
+```
+
+Configuration:
+
+```cisco
+ip route 192.168.20.0 255.255.255.0 10.0.0.2
+```
+
+### Meaning
+
+This tells R1:
+
+> To reach 192.168.20.0/24, forward traffic to R2 at 10.0.0.2.
+
+The resulting route appears as:
+
+```text
+S 192.168.20.0/24 [1/0] via 10.0.0.2
+```
+
+---
+
+# 14. R2 Static Route
+
+R2 requires the reverse route to LAN A.
+
+Destination:
+
+```text
+192.168.10.0/24
+```
+
+Next hop:
+
+```text
+10.0.0.1
+```
+
+Configuration:
+
+```cisco
+ip route 192.168.10.0 255.255.255.0 10.0.0.1
+```
+
+### Meaning
+
+This tells R2:
+
+> To reach 192.168.10.0/24, forward traffic to R1 at 10.0.0.1.
+
+The resulting route appears as:
+
+```text
+S 192.168.10.0/24 [1/0] via 10.0.0.1
+```
+
+---
+
+# 15. Complete R1 Configuration
+
+The relevant R1 configuration is:
+
+```cisco
+hostname R1
+
+interface GigabitEthernet0/0
+ ip address 192.168.10.1 255.255.255.0
+ no shutdown
+
+interface GigabitEthernet0/1
+ ip address 10.0.0.1 255.255.255.252
+ no shutdown
+
+ip route 192.168.20.0 255.255.255.0 10.0.0.2
+```
+
+---
+
+# 16. Complete R2 Configuration
+
+The relevant R2 configuration is:
+
+```cisco
+hostname R2
+
+interface GigabitEthernet0/0
+ ip address 192.168.20.1 255.255.255.0
+ no shutdown
+
+interface GigabitEthernet0/1
+ ip address 10.0.0.2 255.255.255.252
+ no shutdown
+
+ip route 192.168.10.0 255.255.255.0 10.0.0.1
+```
+
+---
+
+# 17. Why the Static Routes Use Network Addresses
+
+The static route does not point to an individual host.
+
+For R1:
+
+```text
+192.168.20.0/24
+```
+
+is the destination network.
+
+The route therefore applies to any host inside that network:
+
+```text
+192.168.20.1
+192.168.20.10
+192.168.20.11
+...
+```
+
+Likewise on R2:
+
+```text
+192.168.10.0/24
+```
+
+represents the entire LAN A network.
+
+---
+
+# 18. Why the Next Hop Is a Router Address
+
+R1 uses:
+
+```text
+10.0.0.2
+```
+
+because that is R2's address on the directly connected transit network.
+
+R2 uses:
+
+```text
+10.0.0.1
+```
+
+because that is R1's address on the same transit network.
+
+The logic is:
+
+```text
+Remote Network
+      ↓
+Next-Hop Router
+      ↓
+Transit Network
+```
+
+---
+
+# 19. Routing Table After Configuration
+
+## R1
+
+Expected:
+
+```text
+C 192.168.10.0/24
+C 10.0.0.0/30
+S 192.168.20.0/24 via 10.0.0.2
+```
+
+## R2
+
+Expected:
+
+```text
+C 192.168.20.0/24
+C 10.0.0.0/30
+S 192.168.10.0/24 via 10.0.0.1
+```
+
+This gives each router a route to both LANs.
+
+---
+
+# 20. Forwarding Path
+
+When PC0 sends traffic to PC1:
+
+```text
+PC0
+192.168.10.10
+      ↓
+Default Gateway
+192.168.10.1
+      ↓
+R1
+      ↓
+Static Route
+192.168.20.0/24
+via 10.0.0.2
+      ↓
+Transit
+10.0.0.0/30
+      ↓
+R2
+      ↓
+Directly Connected
+192.168.20.0/24
+      ↓
+PC1
+192.168.20.10
+```
+
+---
+
+# 21. Return Path
+
+PC1's reply follows:
+
+```text
+PC1
+192.168.20.10
+      ↓
+Default Gateway
+192.168.20.1
+      ↓
+R2
+      ↓
+Static Route
+192.168.10.0/24
+via 10.0.0.1
+      ↓
+Transit
+10.0.0.0/30
+      ↓
+R1
+      ↓
+Directly Connected
+192.168.10.0/24
+      ↓
+PC0
+192.168.10.10
+```
+
+Both directions therefore have a valid path.
+
+---
+
+# 22. Important Route Types Used
+
+The routers use two main route types in this lab.
+
+### Connected
+
+```text
+C
+```
+
+The network is directly attached to one of the router's interfaces.
+
+### Static
+
+```text
+S
+```
+
+The network was manually configured by the administrator.
+
+The distinction is:
+
+```text
+C → Router knows automatically
+S → Administrator tells router
+```
+
+---
+
+# 23. Verification Commands
+
+## Interface status
+
+```cisco
+show ip interface brief
+```
+
+Used to verify:
+
+* Interface IP addresses
+* Administrative state
+* Operational state
+
+## Routing table
+
+```cisco
+show ip route
+```
+
+Used to verify:
+
+* Connected networks
+* Static routes
+* Next-hop information
+
+## Connectivity
+
+```cisco
+ping 10.0.0.2
+ping 10.0.0.1
+ping 192.168.20.10
+ping 192.168.10.10
+```
+
+Used to verify:
+
+* Transit connectivity
+* End-to-end routing
+
+## Configuration
+
+```cisco
+show running-config
+```
+
+Used to verify the actual configured interfaces and static routes.
+
+---
+
+# 24. Verification Logic
+
+The configuration should be verified in this order:
+
+```text
+1. Interfaces up/up
+        ↓
+2. Connected routes present
+        ↓
+3. R1 ↔ R2 transit ping
+        ↓
+4. Static route on R1
+        ↓
+5. Static route on R2
+        ↓
+6. PC0 → PC1
+        ↓
+7. PC1 → PC0
+```
+
+This reduces troubleshooting complexity.
+
+---
+
+# 25. Common Configuration Errors
+
+## Wrong subnet mask on the transit link
+
+The transit network must be:
+
+```text
+10.0.0.0/30
+```
+
+which uses:
+
+```text
+255.255.255.252
+```
+
+## Incorrect next hop
+
+R1 must use:
+
+```text
+10.0.0.2
+```
+
+R2 must use:
+
+```text
+10.0.0.1
+```
+
+## Missing return route
+
+If R1 has its route but R2 does not have the reverse route, the request may reach PC1 but the reply cannot return to PC0.
+
+## Wrong default gateway
+
+PC0 must use:
+
+```text
+192.168.10.1
+```
+
+PC1 must use:
+
+```text
+192.168.20.1
+```
+
+---
+
+# 26. Final Configuration Summary
+
+```text
+R1
+│
+├── G0/0 → 192.168.10.1/24
+├── G0/1 → 10.0.0.1/30
+└── Static route:
+    192.168.20.0/24 via 10.0.0.2
+
+
+R2
+│
+├── G0/0 → 192.168.20.1/24
+├── G0/1 → 10.0.0.2/30
+└── Static route:
+    192.168.10.0/24 via 10.0.0.1
+```
+
+---
+
+# 27. Final Network Logic
+
+The entire configuration follows this model:
+
+```text
+PC0
+ ↓
+Default Gateway
+ ↓
+R1
+ ↓
+Static Route
+ ↓
+Next Hop R2
+ ↓
+Transit Network
+ ↓
+R2
+ ↓
+Connected Network
+ ↓
+PC1
+```
+
+The return path follows the reverse logic.
+
+---
+
+# 28. Final Result
+
+The configuration successfully establishes routing between:
+
+```text
+192.168.10.0/24
+```
+
+and:
+
+```text
+192.168.20.0/24
+```
+
+through:
+
+```text
+10.0.0.0/30
+```
+
+The key configuration is:
+
+```cisco
+R1:
+ip route 192.168.20.0 255.255.255.0 10.0.0.2
+
+R2:
+ip route 192.168.10.0 255.255.255.0 10.0.0.1
+```
+
+With both routes installed, traffic can travel from PC0 to PC1 and the return traffic can travel from PC1 back to PC0.
+
+---
+
+# 29. Final Takeaway
+
+The most important configuration principle from this lab is:
+
+> **A connected route tells a router what is directly attached. A static route tells the router how to reach a remote network.**
+
+The complete routing relationship is:
+
+```text
+Local Network
+    ↓
+Router
+    ↓
+Static Route
+    ↓
+Next Hop
+    ↓
+Transit Network
+    ↓
+Remote Router
+    ↓
+Remote Network
+```
+
+This is the foundation for understanding larger routing tables and dynamic routing protocols.
